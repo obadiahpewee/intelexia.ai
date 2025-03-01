@@ -194,6 +194,12 @@ export default function Home() {
 
   const { toast } = useToast()
 
+  // Declare timeoutId at the function level
+  let timeoutId: NodeJS.Timeout;
+
+  // Add abort controller for report generation
+  const reportController = new AbortController();
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!query.trim()) return
@@ -229,17 +235,26 @@ export default function Home() {
             searchDepth,
           }
 
+      // Add abort controller with 15-minute timeout
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => controller.abort(), 900000) // 15 minutes
+
       console.log('Sending search request:', { endpoint, searchParams })
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(searchParams),
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
+
+      // Read the response body ONCE
+      const data = await response.json()
 
       // Handle successful responses even with partial data
       if (response.status === 200) {
-        const data = await response.json()
-        
+        console.log('Search API response:', data)
         // Show warning for partial failures but continue processing
         if (data.errors?.length > 0) {
           setError(`Partial results: ${data.errors[0]}`) // Show first error as example
@@ -253,48 +268,104 @@ export default function Home() {
           // ... rest of report generation code ...
         }
 
+        // Create a Set to track unique URLs
+        const seenUrls = new Set<string>()
+        
+        // Add URLs of custom URLs to seenUrls
+        customUrls.forEach(item => seenUrls.add(item.url))
+
+        // Process new search results
+        const timestamp = Date.now()
+        const newResults = (data.webPages?.value || [])
+          .filter((result: SearchResult) => !seenUrls.has(result.url))
+          .map((result: SearchResult) => ({
+            ...result,
+            id: result.id ? `${searchType}-${timestamp}-${result.id}` : `${searchType}-${timestamp}-${result.url}`,
+          }))
+
+        console.log('Processed search results:', newResults)
+        
+        // Combine custom URLs and new results
+        const finalResults = [...customUrls, ...newResults]
+        
+        // Update the results state
+        setResults(finalResults)
+
+        // For deep search, also store learnings and generate report
         if (searchType === 'deep' && data.learnings) {
-          console.log('Generating deep report from learnings...')
-          const reportResponse = await fetch('/api/deep-report', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              learnings: data.learnings,
-              sources: data.webPages.value.map((r: SearchResult) => ({
-                id: r.id,
-                url: r.url,
-                name: r.name
-              })),
-              prompt: `Analyze and synthesize the following learnings into a comprehensive report:\n\n${data.learnings.join('\n\n')}`,
-              platformModel: selectedModel,
-              citationStyle: citationStyle === 'apa' ? 'APA 7th Edition' : 
-                            citationStyle === 'mla' ? 'MLA 9th Edition' : 
-                            'IEEE',
-              contentType: documentType,
-              slideCount: documentType === 'presentation' ? parseInt(slideCount) || 10 : undefined,
-              wordCount: documentType === 'report' ? parseInt(wordCount) || 1500 : undefined,
-              model: selectedModel.split('__')[1],
-              searchParams: {
-                depth: deepSearchDepth,
-                breadth: deepSearchBreadth
-              }
+          console.log('Deep search learnings:', data.learnings)
+          const learningsPrompt = data.learnings.join('\n\n')
+          setReportPrompt(learningsPrompt)
+
+          // Auto-select all results for deep search
+          const newSelectedIds = newResults.map((r: SearchResult) => r.id)
+          setSelectedResults(newSelectedIds)
+
+          // Automatically generate report for deep search
+          try {
+            console.log('Generating deep report from learnings...')
+            const reportResponse = await fetch('/api/deep-report', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                learnings: data.learnings,
+                sources: data.webPages.value.map((r: SearchResult) => ({
+                  id: r.id,
+                  url: r.url,
+                  name: r.name
+                })),
+                prompt: `Analyze and synthesize the following learnings into a comprehensive report:\n\n${data.learnings.join('\n\n')}`,
+                platformModel: selectedModel,
+                citationStyle: citationStyle === 'apa' ? 'APA 7th Edition' : 
+                              citationStyle === 'mla' ? 'MLA 9th Edition' : 
+                              'IEEE',
+                contentType: documentType,
+                slideCount: documentType === 'presentation' ? parseInt(slideCount) || 10 : undefined,
+                wordCount: documentType === 'report' ? parseInt(wordCount) || 1500 : undefined,
+                model: selectedModel.split('__')[1],
+                searchParams: {
+                  depth: deepSearchDepth,
+                  breadth: deepSearchBreadth
+                }
+              }),
+              signal: reportController.signal
             })
-          })
 
-          if (!reportResponse.ok) {
-            throw new Error(`Report generation failed: ${reportResponse.statusText}`)
+            if (!reportResponse.ok) {
+              throw new Error(`Report generation failed: ${reportResponse.statusText}`)
+            }
+
+            const reportData = await reportResponse.json()
+            console.log('Generated deep report:', reportData)
+            setReport(reportData)
+            setActiveTab('report')
+          } catch (error) {
+            console.error('Deep report generation failed:', error)
+            setError(error instanceof Error ? error.message : 'Report generation failed')
           }
+        }
 
-          const reportData = await reportResponse.json()
-          console.log('Generated deep report:', reportData)
-          setReport(reportData)
-          setActiveTab('report')
+        // Handle auto-selection mode with fresh selection for non-deep searches
+        if (searchMode === 'auto' && searchType !== 'deep') {
+          let count = searchDepth === 'medium' 
+            ? 6 
+            : searchDepth === 'heavy' 
+              ? 10 
+              : 3 // Default for light
+          
+          // Select from new results only, up to the count based on search depth
+          const newSelectedIds = newResults
+            .slice(0, count)
+            .map((r: SearchResult) => r.id)
+          
+          // Set the new selections (don't preserve old ones)
+          setSelectedResults(newSelectedIds)
         }
       }
 
-      // Handle true errors
+      // Handle errors
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error(
@@ -303,110 +374,20 @@ export default function Home() {
         }
         throw new Error('Search failed. Please try again.')
       }
-
-      const data = await response.json()
-      console.log('Search API response:', data)
-
-      // Create a Set to track unique URLs
-      const seenUrls = new Set<string>()
-      
-      // Add URLs of custom URLs to seenUrls
-      customUrls.forEach(item => seenUrls.add(item.url))
-
-      // Process new search results
-      const timestamp = Date.now()
-      const newResults = (data.webPages?.value || [])
-        .filter((result: SearchResult) => !seenUrls.has(result.url))
-        .map((result: SearchResult) => ({
-          ...result,
-          id: result.id ? `${searchType}-${timestamp}-${result.id}` : `${searchType}-${timestamp}-${result.url}`,
-        }))
-
-      console.log('Processed search results:', newResults)
-      
-      // Combine custom URLs and new results
-      const finalResults = [...customUrls, ...newResults]
-      
-      // Update the results state
-      setResults(finalResults)
-
-      // For deep search, also store learnings and generate report
-      if (searchType === 'deep' && data.learnings) {
-        console.log('Deep search learnings:', data.learnings)
-        const learningsPrompt = data.learnings.join('\n\n')
-        setReportPrompt(learningsPrompt)
-
-        // Auto-select all results for deep search
-        const newSelectedIds = newResults.map((r: SearchResult) => r.id)
-        setSelectedResults(newSelectedIds)
-
-        // Automatically generate report for deep search
-        try {
-          console.log('Generating deep report from learnings...')
-          const reportResponse = await fetch('/api/deep-report', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              learnings: data.learnings,
-              sources: data.webPages.value.map((r: SearchResult) => ({
-                id: r.id,
-                url: r.url,
-                name: r.name
-              })),
-              prompt: `Analyze and synthesize the following learnings into a comprehensive report:\n\n${data.learnings.join('\n\n')}`,
-              platformModel: selectedModel,
-              citationStyle: citationStyle === 'apa' ? 'APA 7th Edition' : 
-                            citationStyle === 'mla' ? 'MLA 9th Edition' : 
-                            'IEEE',
-              contentType: documentType,
-              slideCount: documentType === 'presentation' ? parseInt(slideCount) || 10 : undefined,
-              wordCount: documentType === 'report' ? parseInt(wordCount) || 1500 : undefined,
-              model: selectedModel.split('__')[1],
-              searchParams: {
-                depth: deepSearchDepth,
-                breadth: deepSearchBreadth
-              }
-            })
-          })
-
-          if (!reportResponse.ok) {
-            throw new Error(`Report generation failed: ${reportResponse.statusText}`)
-          }
-
-          const reportData = await reportResponse.json()
-          console.log('Generated deep report:', reportData)
-          setReport(reportData)
-          setActiveTab('report')
-        } catch (error) {
-          console.error('Deep report generation failed:', error)
-          setError(error instanceof Error ? error.message : 'Report generation failed')
-        }
-      }
-
-      // Handle auto-selection mode with fresh selection for non-deep searches
-      if (searchMode === 'auto' && searchType !== 'deep') {
-        let count = searchDepth === 'medium' 
-          ? 6 
-          : searchDepth === 'heavy' 
-            ? 10 
-            : 3 // Default for light
-        
-        // Select from new results only, up to the count based on search depth
-        const newSelectedIds = newResults
-          .slice(0, count)
-          .map((r: SearchResult) => r.id)
-        
-        // Set the new selections (don't preserve old ones)
-        setSelectedResults(newSelectedIds)
-      }
     } catch (error) {
-      // Only show fatal errors
-      if (error instanceof Error && !error.message.includes('Partial results')) {
-        console.error('Search failed:', error)
-        setError(error.message)
+      clearTimeout(timeoutId)
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          setError('Deep search timed out after 15 minutes')
+        } else if (!error.message.includes('Partial results')) {
+          console.error('Search failed:', error)
+          setError(error.message)
+        }
+      } else {
+        console.error('Unexpected error:', error)
+        setError('An unexpected error occurred')
       }
+    } finally {
       setLoading(false)
     }
   }
@@ -718,6 +699,15 @@ export default function Home() {
       </div>
     )
   }
+
+  // Add cleanup in useEffect
+  useEffect(() => {
+    return () => {
+      if (reportController) {
+        reportController.abort()
+      }
+    }
+  }, [])
 
   return (
     <div className='min-h-screen bg-white dark:bg-[#292a2d] p-4 sm:p-8 relative'>

@@ -26,9 +26,9 @@ async function retryJsonParse(jsonMatch: string, retryCount = 0): Promise<any> {
         .replace(/\\(?!["\\/bfnrt])/g, '\\\\')
         // Fix unescaped quotes
         .replace(/(?<!\\)"/g, '\\"')
-        // Fix line breaks and whitespace
-        .replace(/[\n\r]+/g, '\\n')
-        .replace(/\t/g, '\\t')
+        // Properly handle newlines and whitespace
+        .replace(/[\n\r]+/g, ' ')
+        .replace(/\t/g, ' ')
         // Remove BOM and other unicode markers
         .replace(/^\uFEFF/, '')
         // Remove control characters
@@ -41,12 +41,42 @@ async function retryJsonParse(jsonMatch: string, retryCount = 0): Promise<any> {
         // Ensure proper JSON structure
         .trim();
 
-      // If the JSON doesn't start with { or [, wrap it
-      if (!/^[\[{]/.test(cleanedJson)) {
-        cleanedJson = '{' + cleanedJson;
-      }
-      if (!/[\]}]$/.test(cleanedJson)) {
-        cleanedJson = cleanedJson + '}';
+      // Remove literal "\n" strings that aren't properly escaped
+      cleanedJson = cleanedJson.replace(/([^\\])\\n/g, '$1 ');
+      cleanedJson = cleanedJson.replace(/^\\n/g, ' ');
+
+      // More aggressive JSON repair for common issues
+      try {
+        // Try to parse with relaxed JSON parsing first
+        cleanedJson = cleanedJson
+          // Replace all literal "\n" with actual spaces
+          .replace(/\\n/g, ' ')
+          // Fix double-escaped quotes
+          .replace(/\\\\"/g, '\\"')
+          // Remove any backslashes before characters that don't need escaping
+          .replace(/\\([^"\\/bfnrtu])/g, '$1');
+
+        // If the first character isn't a valid JSON start, try to find the JSON object
+        if (!/^[\[{]/.test(cleanedJson)) {
+          const jsonStart = cleanedJson.indexOf('{');
+          if (jsonStart >= 0) {
+            cleanedJson = cleanedJson.substring(jsonStart);
+          } else {
+            cleanedJson = '{' + cleanedJson;
+          }
+        }
+        
+        // If the last character isn't a valid JSON end, try to find the closing bracket
+        if (!/[\]}]$/.test(cleanedJson)) {
+          const jsonEnd = cleanedJson.lastIndexOf('}');
+          if (jsonEnd >= 0 && jsonEnd < cleanedJson.length - 1) {
+            cleanedJson = cleanedJson.substring(0, jsonEnd + 1);
+          } else {
+            cleanedJson = cleanedJson + '}';
+          }
+        }
+      } catch (repairError) {
+        console.error('Error during JSON repair:', repairError);
       }
 
       // Log the cleaned JSON for debugging
