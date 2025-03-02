@@ -739,7 +739,7 @@ export default function Home() {
             <img
               src='/apple-icon.png'
               alt='Open Deep Research'
-              className='w-[486px] h-[112px]'
+              className='w-[645px] h-[112px]'
             />          
           </h1>
           <div className='text-center space-y-3 mb-8'>

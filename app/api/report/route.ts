@@ -65,7 +65,7 @@ async function retryJsonParse(jsonMatch: string, retryCount = 0): Promise<any> {
   }
 }
 
-export const maxDuration = 60
+export const maxDuration = 240 // 4 minutes changed from 60s
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',

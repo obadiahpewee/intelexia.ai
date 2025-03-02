@@ -1,7 +1,7 @@
-# Open Deep Research
+# intelexia.ai
 
 <div align="center">
-  <img src="demo.gif" alt="Open Deep Research Demo" width="800"/>
+  <img src="demo.gif" alt="intelexia.ai Demo" width="800"/>
   <p><em>Note: Demo is sped up for brevity</em></p>
 </div>
 
@@ -9,27 +9,50 @@ An open-source alternative to Gemini Deep Research, built to generate AI-powered
 
 This app functions in three key steps:
 
-1. **Search Results Retrieval**: Using the Bing Search API, the app fetches comprehensive search results for the specified search term.
+1. **Intelligent Search**: Using the DuckDuckGo Scrape API or Semantic Scholar API, the app fetches comprehensive search results for the specified search term.
 2. **Content Extraction**: Leveraging JinaAI, it retrieves and processes the contents of the selected search results, ensuring accurate and relevant information.
+   - Citation-aware extraction
+   - Source credibility scoring
+   - Content chunking/stitching
+   - Fallback snippet preservation
 3. **Report Generation**: With the curated search results and extracted content, the app generates a detailed report using your chosen AI model (Gemini, GPT-4, Sonnet, etc.), providing insightful and synthesized output tailored to your custom prompts.
+   - Style-adaptive formatting (APA/MLA/IEEE)
+   - Word count enforcement (±10% target)
+   - Multi-format exports (PDF, Word, PPTX, Text)
+   - Presentation mode with slide count control
 4. **Knowledge Base**: Save and access your generated reports in a personal knowledge base for future reference and easy retrieval.
+   - Cross-report search
+   - Query/report versioning
+   - Storage optimization
+   - Browser-based persistence
+5. **Intelligent Search**:
+   - Auto/Manual search modes
+   - Configurable depth/breadth parameters
+   - Context-aware query refinement
+   - Multi-level search validation
 
-Open Deep Research combines powerful tools to streamline research and report creation in a user-friendly, open-source platform. You can customize the app to your needs (select your preferred AI model, customize prompts, update rate limits, and configure the number of results both fetched and selected).
+intelexia.ai combines powerful tools to streamline research and report creation in a user-friendly, open-source platform. You can customize the app to your needs (select your preferred AI model, customize prompts, update rate limits, and configure the number of results both fetched and selected).
 
 ## Features
 
-- 🔍 Web search with time filtering
-- 📄 Content extraction from web pages
-- 🤖 Multi-platform AI support (Google Gemini, OpenAI GPT, Anthropic Sonnet)
-- 🎯 Flexible model selection with granular configuration
-- 📊 Multiple export formats (PDF, Word, Text)
-- 🧠 Knowledge Base for saving and accessing past reports
-- ⚡ Rate limiting for stability
-- 📱 Responsive design
+- Deep search modes (Auto/Manual) with configurable breadth/depth
+- Multi-format citation support (APA, MLA, IEEE)
+- Progress tracking during report generation
+- Custom document types (Report/Presentation)
+- Adaptive word count targets
+- Recursive search refinement
+- Web search with time filtering
+- Content extraction from web pages
+- Multi-platform AI support (Google Gemini, OpenAI GPT, Anthropic Sonnet)
+- Flexible model selection with granular configuration
+- Multiple export formats (PDF, Word, Text)
+- Knowledge Base for saving and accessing past reports
+- Rate limiting for stability
+- Responsive design
 
 ## Demo
 
-Try it out at: [Open Deep Research](https://opendeepresearch.vercel.app/)
+Try it out at: [intelexia.ai](https://intelexia.ai/)
 
 ### Knowledge Base
 
@@ -66,7 +89,7 @@ Customize the search behavior:
 ```typescript
 search: {
   resultsPerPage: 10,           // Number of search results to fetch
-  maxSelectableResults: 3,      // Maximum results users can select for reports
+  maxSelectableResults: 60,      // Maximum results users can select for reports
   safeSearch: 'Moderate',       // SafeSearch setting ('Off', 'Moderate', 'Strict')
   market: 'en-US',             // Search market/region
 }
@@ -311,9 +334,14 @@ bun dev
 - [shadcn/ui](https://ui.shadcn.com/) - UI components
 - [Google Gemini](https://deepmind.google/technologies/gemini/) - AI model
 - [JinaAI](https://jina.ai/) - Content extraction
-- [Azure Bing Search](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api) - Web search
+- [DuckDuckScrape](https://github.com/vladkens/duck-duck-scrape) - Primary web search
+- [Semantic Scholar](https://www.semanticscholar.org/) - Academic paper search
+- [Azure Bing Search](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api) - Fallback search
 - [Upstash Redis](https://upstash.com/) - Rate limiting
 - [jsPDF](https://github.com/parallax/jsPDF) & [docx](https://github.com/dolanmiu/docx) - Document generation
+- [PptxGenJS](https://github.com/gitbrent/PptxGenJS.git) - Powerpoint generation
+- [Markdown-it](https://github.com/markdown-it/markdown-it) - Markdown processing
+- [date-fns](https://date-fns.org/) - Date formatting
 
 ## Contributing
 
@@ -327,9 +355,11 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 - Inspired by Google's Gemini Deep Research feature
 - Built with amazing open source tools and APIs
+- Special thanks to [@btahir](https://github.com/btahir) for the initial implementation and contributions in Open Deep Research
+- Special thanks to [@dzhng](https://github.com/dzhng) for the initial implementation and contributions in deep-research algorithm
 
 ## Follow Me
 
 If you're interested in following all the random projects I'm working on, you can find me on Twitter:
 
-[![Twitter Follow](https://img.shields.io/twitter/follow/deepwhitman?style=social)](https://x.com/deepwhitman)
+[![Twitter Follow](https://img.shields.io/twitter/follow/obadiah_pewee?style=social)](https://x.com/obadiah_pewee)
