@@ -1,7 +1,7 @@
 # intelexia.ai
 
 <div align="center">
-  <img src="demo.gif" alt="intelexia.ai Demo" width="800"/>
+  <img src="demo.gif" alt="intelexia.ai Demo" width="600"/>
   <p><em>Note: Demo is sped up for brevity</em></p>
 </div>
 
@@ -9,7 +9,7 @@ An open-source alternative to Gemini Deep Research, built to generate AI-powered
 
 This app functions in three key steps:
 
-1. **Intelligent Search**: Using the DuckDuckGo Scrape API or Semantic Scholar API, the app fetches comprehensive search results for the specified search term.
+1. **Search Query**: Using the DuckDuckGo Scrape API or Semantic Scholar API, the app fetches comprehensive search results for the specified search term.
 2. **Content Extraction**: Leveraging JinaAI, it retrieves and processes the contents of the selected search results, ensuring accurate and relevant information.
    - Citation-aware extraction
    - Source credibility scoring
