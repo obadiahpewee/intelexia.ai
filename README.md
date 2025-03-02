@@ -355,8 +355,8 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 - Inspired by Google's Gemini Deep Research feature
 - Built with amazing open source tools and APIs
-- Special thanks to [@btahir](https://github.com/btahir) for the initial implementation and contributions in Open Deep Research
-- Special thanks to [@dzhng](https://github.com/dzhng) for the initial implementation and contributions in deep-research algorithm
+- Special thanks to [@btahir](https://github.com/btahir) for the initial implementation and contributions in Open Deep Research upon which this project is built
+- Special thanks to [@dzhng](https://github.com/dzhng) for the initial implementation and contributions in deep-research algorithm upon which this project is built
 
 ## Follow Me
 
