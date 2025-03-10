@@ -230,8 +230,8 @@ Note: The maximum duration limit may vary based on your hosting platform and sub
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/btahir/open-deep-research
-cd open-deep-research
+git clone https://github.com/obadiahpewee/intelexia.ai
+cd intelexia.ai
 ```
 
 2. Install dependencies:
